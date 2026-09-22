@@ -29,6 +29,10 @@ python scripts/run_all.py --force
 
 The complete conversion log is archived in `results/convert_log.txt`.
 
+> The repo does **not** ship the three files under `model/`: `run_all.py` downloads the
+> weights and generates them locally (see section 9, "License"). The sizes above are the real
+> artifacts produced by an actual run.
+
 **Compared with the board** (Chestnut Pi 310B, CANN 7.0.RC1, 4-core ARM):
 
 | Item | On the board | This repo (WSL2 x86) | Difference |
@@ -56,8 +60,9 @@ affect loading or inference.
 Chestnut-Pi-YOLOv8-demo/
 ├── README.md                      Chinese README: setup + full walkthrough
 ├── README_EN.md                   This file (English)
+├── LICENSE                        MIT license (covers original code and docs only)
 ├── requirements.txt               Full Python dependency set (pip freeze, 57 packages)
-├── .gitignore                     Ignores ATC temp artifacts (kernel_meta, ...)
+├── .gitignore                     Ignores model artifacts and ATC temp files (kernel_meta, ...)
 ├── env/
 │   ├── setup_yolov8_demo.sh       ★One-shot setup (conda + pip + CANN + system python3 + self-test)
 │   ├── install_requirements.sh    Python deps only (specifically fixes "requirements.txt won't install")
@@ -73,12 +78,12 @@ Chestnut-Pi-YOLOv8-demo/
 │   ├── check_om_out.py            Helper: inspect the OM output tensor layout
 │   ├── check_env.py               Environment self-check (exit 0 = toolchain deps ready)
 │   └── run_all.py                 Runs the whole toolchain in one go (5 steps)
-├── model/
-│   ├── yolov8n.pt                 PyTorch weights (6.55 MB)
+├── model/                         Generated at runtime, never committed (see section 9)
+│   ├── yolov8n.pt                 Downloaded from Ultralytics by run_all.py (6.55 MB)
 │   ├── yolov8n.onnx               Export artifact (12.85 MB)
 │   └── yolov8n_bs1.om             ATC artifact (7.17 MB) ★ final deliverable
 ├── data/
-│   ├── images/bus.jpg             Test image (810x1080, contains bus + person)
+│   ├── images/sample.jpg          Test image (1280x960, bus + person; CC0)
 │   └── coco_names.txt             80 COCO class names
 ├── logs/                          Raw outputs generated at runtime (*.npy / perf txt, not committed)
 └── results/
@@ -272,19 +277,19 @@ You can also run the steps individually, which makes debugging easier:
 
 ```bash
 # [Layer 1] PyTorch baseline — every later accuracy number is compared against it
-python scripts/pt_baseline.py --image data/images/bus.jpg
+python scripts/pt_baseline.py --image data/images/sample.jpg
 
 # [Layer 2] pt -> onnx (opset 11, static shapes)
 python scripts/export_onnx.py --pt model/yolov8n.pt --onnx model/yolov8n.onnx
 
 # [Layer 2] ONNX self-check (structure + ONNX Runtime numerics)
-python scripts/check_onnx.py --onnx model/yolov8n.onnx --image data/images/bus.jpg
+python scripts/check_onnx.py --onnx model/yolov8n.onnx --image data/images/sample.jpg
 
 # [Layer 3] onnx -> om (the slowest step, roughly 5–10 minutes)
 python scripts/atc_convert.py --onnx model/yolov8n.onnx --out model/yolov8n_bs1
 
 # [Board] OM inference (run this on the development board)
-python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/bus.jpg
+python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/sample.jpg
 ```
 
 ### 4.1 The equivalent raw ATC command
@@ -325,7 +330,7 @@ so it **must be executed on the development board**. Copy the project directory 
 ```bash
 # on the development board
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
-python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/bus.jpg
+python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/sample.jpg
 ```
 
 The script prints model information (input/output shapes, dtypes, byte sizes) and the
@@ -427,3 +432,25 @@ Everything else is a transitive dependency of those packages and may float.
   normal TBE noise — as long as the run ends with `ATC run success`, you are fine.
 - An OM only loads on the **same chip model with a compatible CANN version**. Moving across
   chips (e.g. 310B → 310P) requires re-conversion.
+
+---
+
+## 9. License
+
+| Content | License | Notes |
+|---|---|---|
+| Code and docs in this repo (`scripts/`, `env/`, `README*`, ...) | **MIT** | see [LICENSE](LICENSE) |
+| `model/yolov8n.pt`, `yolov8n.onnx`, `yolov8n_bs1.om` | **not shipped here** | `scripts/run_all.py` downloads the weights from the [official Ultralytics release page](https://github.com/ultralytics/assets/releases) and converts them locally. The weights and their derivatives fall under Ultralytics' **AGPL-3.0** (or a commercial Enterprise License), independently of this repo's MIT license |
+| `data/images/sample.jpg` | **CC0** (public domain dedication) | by John Robert McPherson, via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Wheelchair_boarding_bus_on_Platform_2_Roma_Street_busway_Station_Brisbane_P1130804.jpg) |
+| `data/coco_names.txt` | factual data | the 80 COCO class names |
+
+**Why the split**: `yolov8n.pt` is a pretrained weight published by Ultralytics, and `onnx` /
+`om` are the same trained parameters in two other formats — none of the three is the original
+work of this repository's author. MIT permits closed-source redistribution, whereas AGPL-3.0
+requires the whole derivative work to be open-sourced, so the two cannot both apply to the same
+file. This repo therefore **distributes only its own code under MIT and does not redistribute
+those model files** — users generate them locally.
+
+> Want a ready-made `.om`? After cloning, run `python scripts/run_all.py --force`: the script
+> downloads the weights automatically and performs the whole pt → onnx → om pipeline (measured
+> at 28.4 s, excluding CANN installation).

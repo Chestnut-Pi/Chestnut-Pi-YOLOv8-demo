@@ -157,7 +157,7 @@ def main():
     print(f"大小    : {size} 字节 ({size / 1e6:.2f} MB)")
     print("\n板端验证:")
     print("  source /usr/local/Ascend/ascend-toolkit/set_env.sh")
-    print(f"  python3 scripts/infer_om.py --model {om_path} --image data/images/bus.jpg")
+    print(f"  python3 scripts/infer_om.py --model {om_path} --image data/images/sample.jpg")
 
 
 if __name__ == "__main__":

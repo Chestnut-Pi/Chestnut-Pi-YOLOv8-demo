@@ -1,7 +1,7 @@
 """辅助：PyTorch 基线推理 —— 后续 ONNX / OM 的精度都以它为基准。
 
 用法:
-    python3 scripts/pt_baseline.py --image data/images/bus.jpg
+    python3 scripts/pt_baseline.py --image data/images/sample.jpg
 """
 import argparse
 import os
@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="model/yolov8n.pt")
-    ap.add_argument("--image", default="data/images/bus.jpg")
+    ap.add_argument("--image", default="data/images/sample.jpg")
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--iou", type=float, default=0.45)

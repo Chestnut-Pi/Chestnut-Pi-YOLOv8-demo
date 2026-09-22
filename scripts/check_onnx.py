@@ -4,7 +4,7 @@
 ONNX 在这里跑不通，就不用去动 ATC 了。
 
 用法:
-    python scripts/check_onnx.py --onnx model/yolov8n.onnx --image data/images/bus.jpg
+    python scripts/check_onnx.py --onnx model/yolov8n.onnx --image data/images/sample.jpg
 """
 import argparse
 import os
@@ -21,7 +21,7 @@ from yolo_common import load_names, postprocess, preprocess, print_dets, read_im
 def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--onnx", default="model/yolov8n.onnx")
-    ap.add_argument("--image", default="data/images/bus.jpg")
+    ap.add_argument("--image", default="data/images/sample.jpg")
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--iou", type=float, default=0.45)
     ap.add_argument("--save", default="logs/onnx_raw.npy")

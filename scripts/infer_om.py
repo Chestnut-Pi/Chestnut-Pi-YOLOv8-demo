@@ -4,7 +4,7 @@
 
 用法:
     source /usr/local/Ascend/ascend-toolkit/set_env.sh
-    python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/bus.jpg
+    python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/sample.jpg
 
 关于 pyACL 的返回值约定（在 CANN 7.0.RC1 的栗子派 310B 上实测）：
     acl.init() / acl.rt.set_device()            -> 只返回 ret
@@ -235,7 +235,7 @@ def acl_finalize(device_id=0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="model/yolov8n_bs1.om")
-    ap.add_argument("--image", default="data/images/bus.jpg")
+    ap.add_argument("--image", default="data/images/sample.jpg")
     ap.add_argument("--out", default="results/om_result.jpg")
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--iou", type=float, default=0.45)

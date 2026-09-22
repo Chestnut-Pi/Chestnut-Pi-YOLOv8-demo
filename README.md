@@ -28,6 +28,9 @@ python scripts/run_all.py --force
 
 转换全过程日志留档在 `results/convert_log.txt`。
 
+> 仓库**不包含** `model/` 下的三个文件：`run_all.py` 会自动下载权重并在本地生成
+> （原因见第 9 节「许可」）。上表的数字就是实际跑出来的产物大小。
+
 **与板端实测对比**（板端环境：栗子派 310B，CANN 7.0.RC1，4 核 ARM）：
 
 | 项目 | 板端实测 | 本工程（WSL2 x86） | 差异 |
@@ -53,8 +56,9 @@ ATC 退出码均为 0。OM 文件 MD5 每次略有不同（ATC 会把构建时�
 Chestnut-Pi-YOLOv8-demo/
 ├── README.md                      本文件（中文）：环境搭建 + 全流程操作说明
 ├── README_EN.md                   英文版说明（English）
+├── LICENSE                        MIT 许可（仅覆盖本仓库原创代码与文档）
 ├── requirements.txt               全链路 Python 依赖（pip freeze 实测导出，57 包）
-├── .gitignore                     忽略 ATC 临时产物（kernel_meta 等）
+├── .gitignore                     忽略模型产物与 ATC 临时文件（kernel_meta 等）
 ├── env/
 │   ├── setup_yolov8_demo.sh       ★一键搭建（conda + pip + CANN + 系统 python3 + 自动验证）
 │   ├── install_requirements.sh    只装 Python 依赖（专门修「requirements.txt 装不上」）
@@ -70,12 +74,12 @@ Chestnut-Pi-YOLOv8-demo/
 │   ├── check_om_out.py            辅助：确认 OM 输出张量布局
 │   ├── check_env.py               环境自检（退出码 0 = 全链路依赖就绪）
 │   └── run_all.py                 一键串起整条链路（5 步）
-├── model/
-│   ├── yolov8n.pt                 PyTorch 权重（6.55 MB）
+├── model/                         运行后生成、不入库（原因见第 9 节）
+│   ├── yolov8n.pt                 run_all.py 自动从 Ultralytics 下载（6.55 MB）
 │   ├── yolov8n.onnx               导出产物（12.85 MB）
 │   └── yolov8n_bs1.om             ATC 转换产物（7.17 MB）★ 最终交付
 ├── data/
-│   ├── images/bus.jpg             测试图（810x1080，含 bus + person）
+│   ├── images/sample.jpg          测试图（1280x960，含 bus + person；CC0）
 │   └── coco_names.txt             80 类名称
 ├── logs/                          运行后生成的原始输出（*.npy / 性能 txt，不入库）
 └── results/
@@ -265,19 +269,19 @@ python scripts/run_all.py                             # 一键走完 5 步
 
 ```bash
 # [层1] PyTorch 基线 —— 后续所有精度都以它为基准
-python scripts/pt_baseline.py --image data/images/bus.jpg
+python scripts/pt_baseline.py --image data/images/sample.jpg
 
 # [层2] pt -> onnx（opset 11，静态 shape）
 python scripts/export_onnx.py --pt model/yolov8n.pt --onnx model/yolov8n.onnx
 
 # [层2] ONNX 自检（结构 + ONNX Runtime 数值）
-python scripts/check_onnx.py --onnx model/yolov8n.onnx --image data/images/bus.jpg
+python scripts/check_onnx.py --onnx model/yolov8n.onnx --image data/images/sample.jpg
 
 # [层3] onnx -> om（这一步最慢，约 5~10 分钟）
 python scripts/atc_convert.py --onnx model/yolov8n.onnx --out model/yolov8n_bs1
 
 # [板端] OM 推理（在开发板上执行）
-python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/bus.jpg
+python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/sample.jpg
 ```
 
 ### 4.1 ATC 等价原生命令
@@ -316,7 +320,7 @@ atc --model=model/yolov8n.onnx \
 ```bash
 # 在开发板上
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
-python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/bus.jpg
+python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/sample.jpg
 ```
 
 脚本会打印模型信息（输入/输出 shape、dtype、字节数）、检测结果，
@@ -411,3 +415,22 @@ onnx==1.23.0
 - ATC 转换期间会刷大量 `ImportWarning` / `SyntaxWarning`，这是 TBE 的正常噪音，
   只要最后是 `ATC run success` 就没问题。
 - OM 只能在**同型号芯片 + 兼容 CANN 版本**上加载。跨芯片（如 310B → 310P）需要重新转换。
+
+---
+
+## 9. 许可（License）
+
+| 内容 | 许可 | 说明 |
+|---|---|---|
+| 本仓库的代码与文档（`scripts/`、`env/`、`README*` 等） | **MIT** | 见 [LICENSE](LICENSE) |
+| `model/yolov8n.pt`、`yolov8n.onnx`、`yolov8n_bs1.om` | **不在本仓库内** | 由 `scripts/run_all.py` 从 [Ultralytics 官方发布页](https://github.com/ultralytics/assets/releases) 自动下载权重、再在本地转换生成；该权重及其衍生物适用 Ultralytics 的 **AGPL-3.0**（或商业企业许可），与本仓库的 MIT 无关 |
+| `data/images/sample.jpg` | **CC0**（公有领域奉献） | 作者 John Robert McPherson，来源 [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Wheelchair_boarding_bus_on_Platform_2_Roma_Street_busway_Station_Brisbane_P1130804.jpg) |
+| `data/coco_names.txt` | 事实性数据 | COCO 的 80 个类别名 |
+
+**为什么要这样切分**：`yolov8n.pt` 是 Ultralytics 发布的预训练权重，`onnx` / `om` 是同一批
+训练参数的另外两种格式，三者都不是本仓库作者的原创作品。MIT 允许闭源再分发，而
+AGPL-3.0 要求衍生作品整体开源——两者对同一份文件的要求直接冲突。所以本仓库选择
+**只以自己的名义分发原创代码（MIT），不分发这些模型文件**，由使用者在本地自行生成。
+
+> 想要现成 `.om` 的人：clone 后执行 `python scripts/run_all.py --force`，脚本会自动下载
+> 权重并完成 pt → onnx → om 全流程（实测 28.4 秒，不含 CANN 安装时间）。

@@ -126,7 +126,7 @@ def main():
     ap.add_argument("--pt", default=os.path.join(ROOT, "model", "yolov8n.pt"))
     ap.add_argument("--onnx", default=os.path.join(ROOT, "model", "yolov8n.onnx"))
     ap.add_argument("--om", default=os.path.join(ROOT, "model", "yolov8n_bs1.om"))
-    ap.add_argument("--image", default=os.path.join(ROOT, "data", "images", "bus.jpg"))
+    ap.add_argument("--image", default=os.path.join(ROOT, "data", "images", "sample.jpg"))
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--opset", type=int, default=11,
                     help="opset 11 是在 CANN 7.0.RC1 上实测可用的版本")
@@ -151,7 +151,7 @@ def main():
     print("\n下一步（在开发板上跑 OM 推理）:")
     print("  source /usr/local/Ascend/ascend-toolkit/set_env.sh")
     print("  python3 scripts/infer_om.py --model model/yolov8n_bs1.om "
-          "--image data/images/bus.jpg")
+          "--image data/images/sample.jpg")
 
 
 if __name__ == "__main__":

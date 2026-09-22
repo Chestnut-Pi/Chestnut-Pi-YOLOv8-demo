@@ -15,7 +15,11 @@ results/om_result.jpg
 logs/*.npy
 logs/*.npz
 
-# 大文件（模型权重与 OM 属于产物，如需入库请去掉对应行）
-# model/*.pt
-# model/*.onnx
-# model/*.om
+# 模型产物一律不入库 —— 不只是体积问题：
+#   yolov8n.pt / .onnx / .om 都源自 Ultralytics 的预训练权重（AGPL-3.0），
+#   本仓库以 MIT 发布，因此不分发这些文件。
+#   运行 python scripts/run_all.py 会自动从 Ultralytics 官方发布页下载权重，
+#   并在本地生成 onnx / om。
+model/*.pt
+model/*.onnx
+model/*.om
