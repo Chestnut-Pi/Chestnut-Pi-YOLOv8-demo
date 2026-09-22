@@ -1,5 +1,7 @@
 # Chestnut-Pi-YOLOv8-demo — YOLOv8n 全链路环境（pt → ONNX → OM）
 
+[English](README_EN.md) | **简体中文**
+
 在 **WSL2 (Ubuntu 22.04 x86_64)** 中从零搭建的 `yolov8_demo` 环境，装齐
 `yolov8n.pt → yolov8n.onnx → yolov8n_bs1.om` 全链路依赖，并**已实际跑通全流程**。
 
@@ -49,7 +51,8 @@ ATC 退出码均为 0。OM 文件 MD5 每次略有不同（ATC 会把构建时�
 
 ```
 Chestnut-Pi-YOLOv8-demo/
-├── README.md                      本文件：环境搭建 + 全流程操作说明
+├── README.md                      本文件（中文）：环境搭建 + 全流程操作说明
+├── README_EN.md                   英文版说明（English）
 ├── requirements.txt               全链路 Python 依赖（pip freeze 实测导出，57 包）
 ├── .gitignore                     忽略 ATC 临时产物（kernel_meta 等）
 ├── env/
