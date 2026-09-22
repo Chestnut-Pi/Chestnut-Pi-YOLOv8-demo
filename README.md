@@ -193,6 +193,13 @@ atc --version
 **一行多包的原始文件**丢给它，它会先规范化再安装（已实测：17 行含 57 个包，
 从零装到全部可用）。
 
+> 根目录 `requirements.txt` 已按上表修正（`ml_dtypes<0.6`），安装示例里也补上了
+> `--extra-index-url`，所以现在这条命令可以直接装通：
+>
+> ```bash
+> pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+> ```
+
 ### 3.1 手工安装（等价步骤，便于排查）
 
 ```bash
@@ -385,7 +392,7 @@ numpy==1.26.4                    # 必须 <2：CANN TBE 依赖 np.float_
 opencv-python-headless==4.11.0.86
 torch==2.5.1
 ultralytics==8.3.40
-onnx==1.17.0
+onnx==1.23.0
 ```
 
 其余都是这些包的传递依赖，可以随版本浮动。

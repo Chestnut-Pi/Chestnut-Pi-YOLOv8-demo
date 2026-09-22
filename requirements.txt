@@ -12,7 +12,12 @@
 #     # torch 走官方 CPU 源：310B 无 CUDA，CPU 版体积小且足够用
 #     pip install torch==2.5.1 torchvision==0.20.1 \
 #         --index-url https://download.pytorch.org/whl/cpu
-#     pip install -r requirements.txt
+#     pip install -r requirements.txt \
+#         --extra-index-url https://download.pytorch.org/whl/cpu
+#
+# 【必须带 --extra-index-url】本文件里的 torch==2.5.1+cpu 是 PyTorch 官方源特有的
+# local version 标签，PyPI 上只有 CUDA 版；不加这个参数会报
+#     No matching distribution found for torch==2.5.1+cpu
 #
 # 【注意】CANN Toolkit 不在本文件里（它不是 pip 包），
 #         安装方法见 README 第 3 节。
@@ -65,7 +70,7 @@ kiwisolver==1.5.1
 markdown-it-py==4.2.0
 matplotlib==3.10.9
 mdurl==0.1.2
-ml_dtypes==0.6.0
+ml_dtypes<0.6
 mpmath==1.3.0
 networkx==3.4.2
 packaging==26.1
@@ -97,6 +102,8 @@ urllib3==2.8.0
 #                [AttributeError: `np.float_` was removed in the NumPy 2.0 release.
 #                 Use `np.float64` instead..]
 #    而 ultralytics 会经 ml_dtypes 拉入 numpy>=2，所以必须人工降级。
+#    【配套】ml_dtypes 也必须 < 0.6：0.6.0 声明 numpy>=2.0.0，与本条互斥，
+#    不改会让 pip 直接报 ResolutionImpossible（一个包都装不上）。
 #
 # 2) opencv-python-headless==4.11.0.86  ——  必须与 numpy<2 配套
 #    opencv 5.x 的 wheel 声明 numpy>=2，与上一条冲突，必须一起降。

@@ -199,6 +199,13 @@ line, makes pip fail immediately. The four traps and their fixes:
 **original multi-package-per-line file** and it will normalise it first (verified: 17 lines
 holding 57 packages, installed from scratch to fully working).
 
+> The root `requirements.txt` has been corrected accordingly (`ml_dtypes<0.6`) and the install
+> example now carries `--extra-index-url`, so this works as-is:
+>
+> ```bash
+> pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+> ```
+
 ### 3.1 Manual installation (equivalent steps, easier to debug)
 
 ```bash
@@ -398,7 +405,7 @@ numpy==1.26.4                    # must be < 2: CANN TBE depends on np.float_
 opencv-python-headless==4.11.0.86
 torch==2.5.1
 ultralytics==8.3.40
-onnx==1.17.0
+onnx==1.23.0
 ```
 
 Everything else is a transitive dependency of those packages and may float.
