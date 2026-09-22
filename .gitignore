@@ -1,0 +1,21 @@
+# ATC 转换过程中产生的临时文件 / 日志
+kernel_meta/
+fusion_result.json
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# 可视化输出（可随时重新生成）
+results/pt_result/
+results/om_result.jpg
+logs/*.npy
+logs/*.npz
+
+# 大文件（模型权重与 OM 属于产物，如需入库请去掉对应行）
+# model/*.pt
+# model/*.onnx
+# model/*.om

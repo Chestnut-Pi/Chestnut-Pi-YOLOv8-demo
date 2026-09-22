@@ -1,0 +1,108 @@
+
+========================================================================
+步骤 1/5  准备 PyTorch 权重 yolov8n.pt
+========================================================================
+下载: https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt
+完成: /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.pt  (6.55 MB)
+
+========================================================================
+步骤 2/5  导出 ONNX（静态 shape，适配 ATC）
+========================================================================
+$ /home/retoo/miniconda3/envs/yolov8_demo/bin/python /mnt/d/project/Ascend/yolov8_demo2/scripts/export_onnx.py --pt /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.pt --onnx /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.onnx --imgsz 640 --opset 11
+已存在，跳过导出: /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.onnx  (12.85 MB)
+（需要重新导出请加 --force）
+
+=== ONNX 模型自检 ===
+ir_version   : 6
+opset        : [('ai.onnx', 11)]
+producer     : pytorch 2.5.1
+输入: name='images' shape=[1, 3, 640, 640] dtype=float32
+输出: name='output0' shape=[1, 84, 8400] dtype=float32
+算子总数     : 234
+算子种类     : 14
+算子列表     : Add, Concat, Conv, Div, MaxPool, Mul, Reshape, Resize, Sigmoid, Slice, Softmax, Split, Sub, Transpose
+
+========================================================================
+步骤 3/5  校验 ONNX（结构 + ONNX Runtime 推理）
+========================================================================
+$ /home/retoo/miniconda3/envs/yolov8_demo/bin/python /mnt/d/project/Ascend/yolov8_demo2/scripts/check_onnx.py --onnx /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.onnx --image /mnt/d/project/Ascend/yolov8_demo2/data/images/bus.jpg
+=== ONNX Runtime 会话 ===
+provider : CPUExecutionProvider
+输入     : images [1, 3, 640, 640] tensor(float)
+输出     : output0 [1, 84, 8400] tensor(float)
+
+=== 随机输入自检 ===
+输出 shape  : (1, 84, 8400) dtype: float32
+输出 min/max: 0.0 / 638.6865
+NaN/Inf     : 0 / 0
+
+=== 真实图片推理 ===
+原图 810x1080  letterbox ratio=0.592593 pad=(80,0)
+输出 min/max: 0.0 / 637.2663
+检测到 5 个目标:
+  person       conf=0.8902 box=[670.4, 380.6, 809.9, 879.7]
+  person       conf=0.8833 box=[221.7, 407.4, 343.8, 856.2]
+  person       conf=0.8784 box=[50.7, 397.3, 244.4, 905.4]
+  person       conf=0.4363 box=[0.4, 549.8, 57.8, 868.3]
+  bus          conf=0.8434 box=[31.5, 230.7, 801.4, 775.8]
+
+原始输出已存 logs/onnx_raw.npy（供精度对比用）
+【正常】ONNX 可被 ONNX Runtime 正常加载并推理，可以进入 ATC 转换
+
+========================================================================
+步骤 4/5  ATC 转换为 OM 离线模型
+========================================================================
+$ /home/retoo/miniconda3/envs/yolov8_demo/bin/python /mnt/d/project/Ascend/yolov8_demo2/scripts/atc_convert.py --onnx /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.onnx --out /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n_bs1 --soc-version Ascend310B1 --imgsz 640
+=== ATC 转换参数 ===
+atc 路径     : /usr/local/Ascend/ascend-toolkit/latest/bin/atc
+输入 ONNX    : /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.onnx  (12.85 MB)
+输出 OM      : /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n_bs1.om
+目标芯片     : Ascend310B1
+输入节点     : images:1,3,640,640
+ASCEND_HOME  : /usr/local/Ascend/ascend-toolkit/latest
+
+完整命令:
+  /usr/local/Ascend/ascend-toolkit/latest/bin/atc \
+  --model=/mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.onnx \
+  --framework=5 \
+  --output=/mnt/d/project/Ascend/yolov8_demo2/model/yolov8n_bs1 \
+  --input_format=NCHW \
+  --input_shape=images:1,3,640,640 \
+  --soc_version=Ascend310B1 \
+  --log=error
+
+开始转换。yolov8n 在 4 核 ARM CPU 上约需 10 分钟（16 核 x86 约 30 秒），请勿中断……
+
+ATC start working now, please wait for a moment.
+-...
+ATC run success, welcome to the next use.
+
+
+ATC 退出码: 0   耗时: 25.0 秒
+
+=== 转换成功 ===
+OM 文件 : /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n_bs1.om
+大小    : 7173922 字节 (7.17 MB)
+
+板端验证:
+  source /usr/local/Ascend/ascend-toolkit/set_env.sh
+  python3 scripts/infer_om.py --model /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n_bs1.om --image data/images/bus.jpg
+
+========================================================================
+步骤 5/5  校验 OM 产物
+========================================================================
+文件      : /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n_bs1.om
+大小      : 7173922 字节 (7.17 MB)
+文件头    : b'IMOD\x00\x01\x00\x00'
+【正常】OM 产物非空且大小合理
+
+========================================================================
+全链路完成，总耗时 28.4 秒
+========================================================================
+  PT   : /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.pt
+  ONNX : /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n.onnx
+  OM   : /mnt/d/project/Ascend/yolov8_demo2/model/yolov8n_bs1.om
+
+下一步（在开发板上跑 OM 推理）:
+  source /usr/local/Ascend/ascend-toolkit/set_env.sh
+  python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/bus.jpg

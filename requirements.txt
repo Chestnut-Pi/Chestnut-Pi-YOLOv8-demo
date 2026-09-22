@@ -1,0 +1,148 @@
+# ===========================================================================
+# yolov8_demo — YOLOv8n 全链路依赖 (pt -> ONNX -> OM)
+#
+# 环境：WSL2 Ubuntu 22.04 x86_64 / conda env `yolov8_demo` / Python 3.10.20
+# 目标硬件：栗子派昇腾 310B (Atlas 200I DK A2, soc_version=Ascend310B1)
+#
+# 本文件由 `pip freeze` 实测导出（conda 环境 yolov8_demo），共 57 个包。
+#
+# 安装：
+#     conda create -y -n yolov8_demo python=3.10
+#     conda activate yolov8_demo
+#     # torch 走官方 CPU 源：310B 无 CUDA，CPU 版体积小且足够用
+#     pip install torch==2.5.1 torchvision==0.20.1 \
+#         --index-url https://download.pytorch.org/whl/cpu
+#     pip install -r requirements.txt
+#
+# 【注意】CANN Toolkit 不在本文件里（它不是 pip 包），
+#         安装方法见 README 第 3 节。
+# ===========================================================================
+
+# --- 核心：pt -> ONNX 导出 -------------------------------------------------
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+ultralytics==8.3.40
+ultralytics-thop==2.1.6
+
+# --- 核心：ONNX 图操作与校验 -----------------------------------------------
+onnx==1.23.0
+onnxruntime==1.23.2
+onnxsim==0.7.3
+onnxslim==0.1.96
+
+# --- 核心：数值与图像（numpy 必须 <2，见下方「版本钉死原因」）---------------
+numpy==1.26.4
+opencv-python-headless==4.11.0.86
+
+# --- CANN TBE 的 Python 依赖（ATC 转换时由 TBE 导入）----------------------
+# 这些同时也是 ultralytics 的传递依赖，但 TBE 会直接 import，必须显式列出。
+scipy==1.15.3
+decorator==5.3.1
+attrs==26.1.0
+psutil==7.2.2
+synr==0.6.0
+absl-py==2.5.0
+tornado==6.5.10
+
+# --- 以下为上述包的传递依赖（pip freeze 实测）-----------------------------
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+PyYAML==6.0.3
+Pygments==2.21.0
+certifi==2026.7.22
+charset-normalizer==3.5.1
+colorama==0.4.6
+coloredlogs==15.0.1
+contourpy==1.3.2
+cycler==0.12.1
+filelock==3.32.3
+flatbuffers==25.12.19
+fonttools==4.65.0
+fsspec==2026.7.0
+humanfriendly==10.0
+idna==3.20
+kiwisolver==1.5.1
+markdown-it-py==4.2.0
+matplotlib==3.10.9
+mdurl==0.1.2
+ml_dtypes==0.6.0
+mpmath==1.3.0
+networkx==3.4.2
+packaging==26.1
+pandas==2.3.3
+pillow==12.3.0
+protobuf==7.36.2
+py-cpuinfo==9.0.0
+pyparsing==3.3.3
+python-dateutil==2.9.0.post0
+pytz==2026.3.post1
+requests==2.34.2
+rich==15.0.0
+seaborn==0.13.2
+six==1.17.0
+sympy==1.13.1
+tqdm==4.70.1
+typing_extensions==4.16.0
+tzdata==2026.4
+urllib3==2.8.0
+
+# ===========================================================================
+# 版本钉死原因（改动前请先读）
+# ===========================================================================
+#
+# 1) numpy==1.26.4  ——  必须 < 2.0
+#    CANN 8.0.RC1 的 TBE 算子编译框架用了 np.float_ 这类在 NumPy 2.0 中
+#    被删除的别名。用 numpy 2.x 时 ATC 报：
+#        EC0010: Failed to import Python module
+#                [AttributeError: `np.float_` was removed in the NumPy 2.0 release.
+#                 Use `np.float64` instead..]
+#    而 ultralytics 会经 ml_dtypes 拉入 numpy>=2，所以必须人工降级。
+#
+# 2) opencv-python-headless==4.11.0.86  ——  必须与 numpy<2 配套
+#    opencv 5.x 的 wheel 声明 numpy>=2，与上一条冲突，必须一起降。
+#    用 headless 版：不需要 GUI（highgui），服务器/容器里更省依赖。
+#    注意：不要把 opencv-python 与 opencv-python-headless 同时装上，
+#         两者都提供 cv2 模块，会互相覆盖导致
+#         `module 'cv2' has no attribute 'setNumThreads'`。
+#
+# 3) torch==2.5.1+cpu
+#    310B 无 CUDA，装 CPU 版即可；导出 ONNX 只用到前向图，不需要 GPU。
+#
+# 4) onnxsim 与 onnxslim 都装
+#    ultralytics 8.3.x 的 export(simplify=True) 优先用 onnxslim，找不到时
+#    回退 onnxsim 并打印 "simplifier failure"。两个都装可避免该警告。
+#    实测 onnxslim 把算子数从 259 化简到 234。
+#
+# 5) 系统 Python 也要有 numpy<2 与 TBE 依赖
+#    ATC 的 TBE 用的是**系统 python3**（/usr/bin/python3），不是 conda 环境里的。
+#    所以系统侧也必须补齐（见 README 3.1 节最后一步）：
+#        pip install --target=/usr/local/lib/python3.10/dist-packages \
+#            numpy==1.26.4 scipy decorator psutil synr absl-py tornado
+#    否则 ATC 会报同样的 np.float_ 错误，即使 conda 环境里的 numpy 已经是 1.26.4。
+#
+# ===========================================================================
+# 非 pip 依赖：CANN Toolkit（提供 atc 命令）
+# ===========================================================================
+#
+#   Ascend-cann-toolkit_8.0.RC1_linux-x86_64.run   1863 MB
+#   Ascend-cann-kernels-310b_8.0.RC1_linux.run      501 MB
+#
+# 下载（无需登录，华为云 OBS 公共仓）：
+#   https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/CANN%208.0.RC1/
+#
+# 安装：
+#   chmod +x *.run
+#   sudo ./Ascend-cann-toolkit_8.0.RC1_linux-x86_64.run --install --quiet
+#   sudo ./Ascend-cann-kernels-310b_8.0.RC1_linux.run   --install --quiet
+#   source /usr/local/Ascend/ascend-toolkit/set_env.sh
+#
+# 【关键】本机没有装 NPU 驱动，atc.bin 链接的 libascend_hal.so 要用 toolkit
+#         自带的 stub 版本，必须加进库搜索路径。注意 stub 要【追加在最后】：
+#   export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/Ascend/ascend-toolkit/latest/runtime/lib64/stub"
+#   （scripts/atc_convert.sh 与 atc_convert.py 已自动处理这一步）
+#
+# 【为什么必须放最后】stub 目录里有一批与真实库同名的空壳库
+# （libascendcl.so、libacl_dvpp.so 等，仅几十 KB，不含实现符号）。
+# 若写成 stub:$LD_LIBRARY_PATH，空壳库会抢先加载，导致 pyACL 导入失败：
+#   ImportError: .../python/site-packages/acl.so: undefined symbol: aclprofSetConfig
+# 陷阱：atc 在两种顺序下都能用，只有用 pyACL 跑 OM 推理时才暴露。
