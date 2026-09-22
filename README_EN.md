@@ -23,15 +23,18 @@ python scripts/run_all.py --force
 |---|---|---|
 | 1. Fetch weights | `model/yolov8n.pt` | 6.55 MB |
 | 2. Export ONNX | `model/yolov8n.onnx` | **12.85 MB**, opset 11, `images[1,3,640,640]` → `output0[1,84,8400]`, ops 259 → **234** (simplified by onnxslim) |
-| 3. Verify ONNX | — | ONNX Runtime detects **5 objects** (bus 0.8434 + person ×4), 0 NaN / 0 Inf |
+| 3. Verify ONNX | — | ONNX Runtime detects **10 objects** (bus ×2 + person ×8, top bus 0.8538), 0 NaN / 0 Inf |
 | 4. ATC conversion | `model/yolov8n_bs1.om` | **7,173,922 bytes (7.17 MB)**, **25.0 s** (16-core x86), `ATC run success` |
 | 5. Verify OM | — | magic bytes `IMOD`, embeds `Ascend310B1` / `images` / `output0` |
 
-The complete conversion log is archived in `results/convert_log.txt`.
+The complete conversion log is archived in `results/convert_log.txt` (the raw log of that
+original run, including the absolute paths and test-image name in use at the time).
 
 > The repo does **not** ship the three files under `model/`: `run_all.py` downloads the
 > weights and generates them locally (see section 9, "License"). The sizes above are the real
-> artifacts produced by an actual run.
+> artifacts produced by an actual run. The detection counts in the table come from the bundled
+> `data/images/sample.jpg` (9 objects on the PyTorch side, 10 on the ONNX side), whereas the OM
+> size and ATC runtime depend only on the model, not on the test image.
 
 **Compared with the board** (Chestnut Pi 310B, CANN 7.0.RC1, 4-core ARM):
 
@@ -383,7 +386,9 @@ Each of the three layers is independently verifiable, which is the key to debugg
 If ONNX is fine but the OM misbehaves, the problem is in the ATC conversion (parameters, TBE
 dependencies, soc_version). If ONNX itself misbehaves, do not touch ATC yet.
 
-Three-layer consistency measured on the board (CANN 7.0.RC1, Chestnut Pi 310B):
+Three-layer consistency measured on the board (CANN 7.0.RC1, Chestnut Pi 310B) — this data comes
+from an earlier board run that used `bus.jpg`; the repo now ships `sample.jpg`, so the detection
+counts differ, while the accuracy conclusion is unchanged:
 
 ```
 PyTorch baseline  5 objects (bus 0.8729, person ×4)

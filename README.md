@@ -22,14 +22,16 @@ python scripts/run_all.py --force
 |---|---|---|
 | 1. 准备权重 | `model/yolov8n.pt` | 6.55 MB |
 | 2. 导出 ONNX | `model/yolov8n.onnx` | **12.85 MB**，opset 11，`images[1,3,640,640]` → `output0[1,84,8400]`，算子 259→**234**（onnxslim 化简） |
-| 3. 校验 ONNX | — | ONNX Runtime 推理出 **5 个目标**（bus 0.8434 + person ×4），NaN/Inf 均为 0 |
+| 3. 校验 ONNX | — | ONNX Runtime 推理出 **10 个目标**（bus ×2 + person ×8，最高 bus 0.8538），NaN/Inf 均为 0 |
 | 4. ATC 转换 | `model/yolov8n_bs1.om` | **7,173,922 字节（7.17 MB）**，耗时 **25.0 秒**（16 核 x86），`ATC run success` |
 | 5. 校验 OM | — | 文件头 `IMOD`，内嵌 `Ascend310B1` / `images` / `output0` |
 
-转换全过程日志留档在 `results/convert_log.txt`。
+转换全过程日志留档在 `results/convert_log.txt`（当时那次运行的原始日志，内含当时的绝对路径与测试图名）。
 
 > 仓库**不包含** `model/` 下的三个文件：`run_all.py` 会自动下载权重并在本地生成
 > （原因见第 9 节「许可」）。上表的数字就是实际跑出来的产物大小。
+> 表中「检测数量」用的是仓库随附的 `data/images/sample.jpg`（PyTorch 侧 9 个目标，
+> ONNX 侧 10 个）；而 OM 大小与 ATC 耗时只取决于模型，与测试图无关。
 
 **与板端实测对比**（板端环境：栗子派 310B，CANN 7.0.RC1，4 核 ARM）：
 
@@ -370,7 +372,8 @@ python3 scripts/infer_om.py --model model/yolov8n_bs1.om --image data/images/sam
 如果 ONNX 正常而 OM 异常，问题一定在 ATC 转换（参数、TBE 依赖、soc_version）；
 如果 ONNX 本身就异常，就不用去动 ATC。
 
-板端实测（CANN 7.0.RC1，栗子派 310B）三层一致性：
+板端实测（CANN 7.0.RC1，栗子派 310B）三层一致性 —— 这组数据来自更早的板端运行，当时用的
+是 `bus.jpg`；仓库现在随附 `sample.jpg`，检测数量会有差异，精度对比的结论不变：
 
 ```
 PyTorch 基线      5 个目标（bus 0.8729，person ×4）
